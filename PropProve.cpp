@@ -22,6 +22,7 @@ template <class T> T operator+(T t1, T t2) {
   return t;
 }
 
+// Return comma-separated string of a container of strings.
 template <class T> string show_strings(T ss) {
   for_each(ss.begin(), prev(ss.end()), [] (string &s) { s += ", "; });
   return accumulate(ss.begin(), ss.end(), string(""));
@@ -54,22 +55,48 @@ class Variable : public Term
     virtual string show() { return name; }
 };
 
-class And : public Term
+TermP mk_variable(string n) { return TermP(new Variable(n)); }
+
+enum Connective {And, Or, Implies};
+
+string show_connective(Connective c) {
+  string s;
+  if      (c == And) s = "/\\";
+  else if (c == Or ) s = "\\/";
+  else               s = "->";
+
+  return " " + s + " ";
+}
+
+class PairTerm : public Term
 {
   private:
-    TermP left, right;
+    TermP left;
+    Connective conn;
+    TermP right;
 
   public:
-    And(TermP l, TermP r) : left(l), right(r) {}
-    virtual string show() { return left->show() + " /\\ " + right->show(); }
+    PairTerm(TermP l, Connective c, TermP r) : left(l), conn(c), right(r) {}
+    virtual string show() {
+      return left->show() + show_connective(conn) + right->show();
+    }
 };
 
-/*
-class Or : public Term
+TermP mk_and(TermP l, TermP r) { return TermP(new PairTerm(l, And, r)); }
+TermP mk_or (TermP l, TermP r) { return TermP(new PairTerm(l,  Or, r)); }
+
+class Not : public Term
 {
-  Or(Term, Term);
+  private:
+    TermP term;
+
+  public:
+    Not(TermP t) : term(t) {}
+    virtual string show() { return "~" + term->show(); }
 };
-*/
+
+TermP mk_not (TermP t) { return TermP(new Not(t)); }
+
 
 // -----------------------------------------------------------------------------
 // Proofs
@@ -99,22 +126,38 @@ class Conj : public Proof
 
     ProofP disch(LR);
 
-    virtual Terms premises() {
-      return left->premises() + right->premises();
-    }
+    virtual Terms premises() { return left->premises() + right->premises(); }
     virtual TermP conclusion() {
-      return TermP(new And(left->conclusion(), right->conclusion()));
+      return mk_and(left->conclusion(), right->conclusion());
     }
 };
 
-/*
+ProofP mk_conj(ProofP l, ProofP r) { return ProofP(new Conj(l, r)); }
+
 class Disj : public Proof
 {
-  Disj(LR, Proof p, Term&);
+  private:
+    LR proof_side;
+    ProofP proof;
+    TermP term;
 
-  Proof disch(Proof, Proof);
+  public:
+    Disj(ProofP p, TermP t) : proof_side(Left ), proof(p), term(t) {}
+    Disj(TermP t, ProofP p) : proof_side(Right), proof(p), term(t) {}
+
+    ProofP disch(ProofP, ProofP);
+
+    virtual Terms premises() { return proof->premises(); }
+    virtual TermP conclusion() {
+      if (proof_side == Left)
+        return mk_or(proof->conclusion(), term);
+      else
+        return mk_or(term, proof->conclusion());
+    }
 };
-*/
+
+ProofP mk_disj(ProofP l, TermP r) { return ProofP(new Disj(l, r)); }
+ProofP mk_disj(TermP l, ProofP r) { return ProofP(new Disj(l, r)); }
 
 class Assume : public Proof
 {
@@ -127,13 +170,14 @@ class Assume : public Proof
     virtual TermP conclusion() { return term; }
 };
 
+ProofP mk_assume(TermP t) { return ProofP(new Assume(t)); }
 
 
 int main()
 {
-  ProofP a(new Assume(TermP(new Variable("a"))));
-  ProofP b(new Assume(TermP(new Variable("b"))));
-  ProofP conj(new Conj(a, b));
-  cout << (*conj) << endl;
+  ProofP a = mk_assume(mk_not(mk_variable("a")));
+  ProofP b = mk_assume(mk_variable("b"));
+  ProofP thm = mk_disj(mk_conj(a, b), mk_variable("x"));
+  cout << (*thm) << endl;
   return 0;
 }
