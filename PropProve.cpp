@@ -31,8 +31,8 @@ template <class T> class Maybe {
     Maybe(T x) : x(x), just(true) {}
 
     template <class R> R maybe(R r, R (*f)(T)) {
-      if (just) return r;
-      else return f(x);
+      if (just) return f(x);
+      else return r;
     }
 };
 
