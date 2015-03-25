@@ -16,6 +16,25 @@ ostream& operator<<(std::ostream& os, const Show& s) {
   os << s.show(); return os;
 }
 
+template <class T> T id(T x) {
+  return x;
+}
+
+template <class T> class Maybe {
+  private:
+    T &x;
+    bool just;
+
+  public:
+    Maybe() : x(nullptr), just(false) {}
+    Maybe(T x) : x(x), just(true) {}
+
+    template <class R> R maybe(R r, R (*f)(T)) {
+      if (just) return r;
+      else return f(x);
+    }
+};
+
 // Concatenate containers supporting `insert`.
 template <class T> T operator+(const T t1, const T t2) {
   T t(t1);
@@ -177,5 +196,6 @@ int main() {
   ProofP b = mk_assume(mk_variable("b"));
   ProofP thm = mk_disj(mk_conj(a, b), mk_variable("x"));
   cout << (*thm) << endl;
+
   return 0;
 }
