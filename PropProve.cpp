@@ -4,6 +4,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 
 using namespace std;;
 
@@ -56,13 +57,19 @@ class Term : public Show {
 };
 
 typedef shared_ptr<const Term> TermP;
-typedef set<TermP> Terms;
+//typedef set<TermP> Terms;
 
-string show_terms(Terms ts) {
-  list<string> ss;
-  for (const auto t : ts) ss.push_back(t->show());
-  return show_strings(ss);
-}
+class Terms : public set<TermP>, public Show {
+  using set::set;
+
+  public:
+    string show() const {
+      list<string> ss;
+      for (const auto t : (*this)) ss.push_back(t->show());
+      return show_strings(ss);
+    }
+};
+
 
 class Variable : public Term {
   private:
@@ -72,8 +79,8 @@ class Variable : public Term {
     Variable(string n) : name(n) {}
     virtual string show() const { return name; }
 };
-
 TermP mk_variable(string n) { return TermP(new Variable(n)); }
+
 
 enum Connective {And, Or, Implies};
 
@@ -85,6 +92,7 @@ string show_connective(Connective c) {
 
   return " " + s + " ";
 }
+
 
 class PairTerm : public Term {
   private:
@@ -98,9 +106,9 @@ class PairTerm : public Term {
       return left->show() + show_connective(conn) + right->show();
     }
 };
-
 TermP mk_and(TermP l, TermP r) { return TermP(new PairTerm(l, And, r)); }
 TermP mk_or (TermP l, TermP r) { return TermP(new PairTerm(l,  Or, r)); }
+
 
 class Not : public Term {
   private:
@@ -110,7 +118,6 @@ class Not : public Term {
     Not(TermP t) : term(t) {}
     virtual string show() const { return "~" + term->show(); }
 };
-
 TermP mk_not (TermP t) { return TermP(new Not(t)); }
 
 
@@ -123,7 +130,7 @@ class Proof : public Show {
     virtual TermP conclusion() const = 0;
 
     string show() const {
-      return show_terms(premises()) + " |- " + conclusion()->show();
+      return premises().show() + " |- " + conclusion()->show();
     }
 };
 
@@ -163,7 +170,7 @@ class Disj : public Proof {
     Disj(ProofP p, TermP t) : proof_side(Left ), proof(p), term(t) {}
     Disj(TermP t, ProofP p) : proof_side(Right), proof(p), term(t) {}
 
-    ProofP disch(ProofP, ProofP);
+    ProofP disch(ProofP pl, ProofP pr);
 
     virtual Terms premises() const { return proof->premises(); }
     virtual TermP conclusion() const { return left_right(proof_side,
@@ -196,6 +203,9 @@ int main() {
   ProofP b = mk_assume(mk_variable("b"));
   ProofP thm = mk_disj(mk_conj(a, b), mk_variable("x"));
   cout << (*thm) << endl;
+
+  Terms vars({mk_variable("a"), mk_variable("b")});
+  cout << vars;
 
   return 0;
 }
