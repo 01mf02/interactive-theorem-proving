@@ -23,15 +23,18 @@ template <class T> T id(T x) {
 
 template <class T> class Maybe {
   private:
-    T &x;
-    bool just;
+    shared_ptr<T> p;
 
   public:
-    Maybe() : x(nullptr), just(false) {}
-    Maybe(T x) : x(x), just(true) {}
+    Maybe() {}
+    Maybe(T x) : p(new T(x)) {}
+
+    static Maybe<T> from_ptr(T x) {
+      if (x) return Maybe<T>(x); else return Maybe<T>();
+    }
 
     template <class R> R maybe(R r, R (*f)(T)) {
-      if (just) return f(x);
+      if (p) return f(*p);
       else return r;
     }
 };
@@ -57,7 +60,6 @@ class Term : public Show {
 };
 
 typedef shared_ptr<const Term> TermP;
-//typedef set<TermP> Terms;
 
 class Terms : public set<TermP>, public Show {
   using set::set;
@@ -106,8 +108,15 @@ class PairTerm : public Term {
       return left->show() + show_connective(conn) + right->show();
     }
 };
+
+typedef shared_ptr<const PairTerm> PairTermP;
+
 TermP mk_and(TermP l, TermP r) { return TermP(new PairTerm(l, And, r)); }
 TermP mk_or (TermP l, TermP r) { return TermP(new PairTerm(l,  Or, r)); }
+
+Maybe<PairTermP> dt_pair_term(TermP t) {
+  return Maybe<PairTermP>::from_ptr(dynamic_pointer_cast<const PairTerm>(t));
+}
 
 
 class Not : public Term {
@@ -118,6 +127,7 @@ class Not : public Term {
     Not(TermP t) : term(t) {}
     virtual string show() const { return "~" + term->show(); }
 };
+
 TermP mk_not (TermP t) { return TermP(new Not(t)); }
 
 
@@ -205,7 +215,7 @@ int main() {
   cout << (*thm) << endl;
 
   Terms vars({mk_variable("a"), mk_variable("b")});
-  cout << vars;
+  cout << vars << endl;
 
   return 0;
 }
