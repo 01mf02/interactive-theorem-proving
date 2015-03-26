@@ -29,15 +29,19 @@ template <class T> class Maybe {
     Maybe() {}
     Maybe(T x) : p(new T(x)) {}
 
-    static Maybe<T> from_ptr(T x) {
-      if (x) return Maybe<T>(x); else return Maybe<T>();
-    }
-
     template <class R> R maybe(R r, R (*f)(T)) {
       if (p) return f(*p);
       else return r;
     }
 };
+
+template <class T> Maybe<T> maybe_from_boolean(T x) {
+  if (x) return Maybe<T>(x); else return Maybe<T>();
+}
+
+template <class T, class U> Maybe<shared_ptr<T> > maybe_cast(U p) {
+  return maybe_from_boolean(dynamic_pointer_cast<T>(p));
+}
 
 // Concatenate containers supporting `insert`.
 template <class T> T operator+(const T t1, const T t2) {
@@ -81,42 +85,60 @@ class Variable : public Term {
     Variable(string n) : name(n) {}
     virtual string show() const { return name; }
 };
+
 TermP mk_variable(string n) { return TermP(new Variable(n)); }
 
 
-enum Connective {And, Or, Implies};
-
-string show_connective(Connective c) {
-  string s;
-  if      (c == And) s = "/\\";
-  else if (c == Or ) s = "\\/";
-  else               s = "->";
-
-  return " " + s + " ";
-}
 
 
-class PairTerm : public Term {
+class PairTerm : public Term, public pair<TermP, TermP> {
+  protected:
+    enum Connective {AndConn, OrConn, ImpliesConn};
+
   private:
-    TermP left;
     Connective conn;
-    TermP right;
+
+    string show_connective(Connective c) const {
+      if      (c == AndConn) return "/\\";
+      else if (c == OrConn ) return "\\/";
+      else                   return "->";
+    }
+
+  protected:
+    PairTerm(TermP l, Connective c, TermP r) : pair(l, r), conn(c) {}
 
   public:
-    PairTerm(TermP l, Connective c, TermP r) : left(l), conn(c), right(r) {}
     virtual string show() const {
-      return left->show() + show_connective(conn) + right->show();
+      return first->show() + " " + show_connective(conn) + " " + second->show();
     }
 };
 
-typedef shared_ptr<const PairTerm> PairTermP;
+class And : public PairTerm {
+  public:
+    And(TermP l, TermP r) : PairTerm(l, AndConn, r) {}
+};
 
-TermP mk_and(TermP l, TermP r) { return TermP(new PairTerm(l, And, r)); }
-TermP mk_or (TermP l, TermP r) { return TermP(new PairTerm(l,  Or, r)); }
+class Or : public PairTerm {
+  public:
+    Or(TermP l, TermP r) : PairTerm(l, OrConn, r) {}
+};
 
-Maybe<PairTermP> dt_pair_term(TermP t) {
-  return Maybe<PairTermP>::from_ptr(dynamic_pointer_cast<const PairTerm>(t));
-}
+class Implies : public PairTerm {
+  public:
+    Implies(TermP l, TermP r) : PairTerm(l, ImpliesConn, r) {}
+};
+
+typedef shared_ptr<const     And>     AndP;
+typedef shared_ptr<const      Or>      OrP;
+typedef shared_ptr<const Implies> ImpliesP;
+
+TermP mk_and    (TermP l, TermP r) { return TermP(new     And(l, r)); }
+TermP mk_or     (TermP l, TermP r) { return TermP(new      Or(l, r)); }
+TermP mk_implies(TermP l, TermP r) { return TermP(new Implies(l, r)); }
+
+Maybe<    AndP> dt_and    (TermP t) { return maybe_cast<const     And>(t); }
+Maybe<     OrP> dt_or     (TermP t) { return maybe_cast<const      Or>(t); }
+Maybe<ImpliesP> dt_implies(TermP t) { return maybe_cast<const Implies>(t); }
 
 
 class Not : public Term {
