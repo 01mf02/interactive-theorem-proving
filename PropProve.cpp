@@ -17,6 +17,19 @@ ostream& operator<<(std::ostream& os, const Show& s) {
   os << s.show(); return os;
 }
 
+class Error: public std::exception {
+  private:
+    string message;
+
+  public:
+    Error(const string& m) : message(m) {}
+    virtual const char* what() const throw() {
+        return message.c_str();
+    }
+};
+
+void fail(string s) { throw Error(s); }
+
 template <class T> T id(T x) {
   return x;
 }
@@ -150,7 +163,12 @@ class Not : public Term {
     virtual string show() const { return "~" + term->show(); }
 };
 
+typedef shared_ptr<const Not> NotP;
+
 TermP mk_not (TermP t) { return TermP(new Not(t)); }
+
+Maybe<NotP> dt_not(TermP t) { return maybe_cast<const Not>(t); }
+
 
 
 // -----------------------------------------------------------------------------
@@ -184,7 +202,9 @@ class Conj : public Proof
 
     ProofP disch(LR s) const { return left_right(s, left, right); }
 
-    virtual Terms premises() const { return left->premises() + right->premises(); }
+    virtual Terms premises() const {
+      return left->premises() + right->premises();
+    }
     virtual TermP conclusion() const {
       return mk_and(left->conclusion(), right->conclusion());
     }
@@ -202,7 +222,9 @@ class Disj : public Proof {
     Disj(ProofP p, TermP t) : proof_side(Left ), proof(p), term(t) {}
     Disj(TermP t, ProofP p) : proof_side(Right), proof(p), term(t) {}
 
-    ProofP disch(ProofP pl, ProofP pr);
+    ProofP disch(ProofP l, ProofP r) {
+      return nullptr;
+    }
 
     virtual Terms premises() const { return proof->premises(); }
     virtual TermP conclusion() const { return left_right(proof_side,
@@ -213,6 +235,31 @@ class Disj : public Proof {
 
 ProofP mk_disj(ProofP l, TermP r) { return ProofP(new Disj(l, r)); }
 ProofP mk_disj(TermP l, ProofP r) { return ProofP(new Disj(l, r)); }
+
+
+class Impl : public Proof {
+  private:
+    TermP term;
+    ProofP proof;
+
+  public:
+    Impl(TermP t, ProofP p) : term(t), proof(p) {}
+
+    ProofP disch(ProofP p) {
+      if (p->conclusion() == term)
+        return nullptr; //(p->premises() + premises(), p->conclusion());
+    }
+
+    virtual Terms premises() const {
+      Terms prems(proof->premises());
+      if (prems.erase(term) == 1) return prems;
+      else fail("Implication premise not in proof premises.");
+    }
+
+    virtual TermP conclusion() const {
+      return mk_implies(term, proof->conclusion());
+    }
+};
 
 class Assume : public Proof {
   private:
