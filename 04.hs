@@ -11,7 +11,7 @@ instance Show Term where
   show (Implies t u) = show t ++ " → " ++ show u
 
 type Antecedents = [Term]
-type Consequent = Term
+type Consequent  =  Term
 
 data Proof = Proof Antecedents Consequent
 
@@ -39,7 +39,7 @@ mp (Proof a1 c1) (Proof a2 (c1a `Implies` c1b))
   | otherwise = error "Modus ponens: Premise does not match antecedent."
 mp _ _ = error "Modus ponens: Second argument is not an implication proof."
 
--- Not p |- p -> q
+-- Not p |- p --> q
 proof :: Term -> Term -> Proof
 proof p q = mp (mp np a1) a3 where
   np = assume (Not p)
