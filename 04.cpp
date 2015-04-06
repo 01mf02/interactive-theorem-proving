@@ -282,8 +282,5 @@ int main() {
   ProofP thm = mk_disj(mk_conj(a, b), mk_variable("x"));
   cout << (*thm) << endl;
 
-  Terms vars({mk_variable("a"), mk_variable("b")});
-  cout << vars << endl;
-
   return 0;
 }
