@@ -192,8 +192,7 @@ template <class T> T left_right(LR lr, T l, T r) {
   if (lr == Left) return l; else return r;
 }
 
-class Conj : public Proof
-{
+class Conj : public Proof {
   private:
     ProofP left, right;
 
