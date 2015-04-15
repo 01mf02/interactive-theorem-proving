@@ -3,7 +3,10 @@
 -- Oleg Kiselyov (FNMOC) and Chung-chieh Shan (Rutgers University),
 -- http://okmij.org/ftp/Computation/FLOLAC/
 
+import Control.Applicative ((<|>))
 import Control.Monad.State
+import Data.Attoparsec.ByteString.Char8
+--import Data.ByteString (pack)
 import Data.Char (chr, ord)
 
 type TVarId = Int
@@ -101,6 +104,22 @@ inferType (A s t) ty = do
   return tu
 
 runInferType :: Term -> Either String Type
-runInferType t = do
-  (t, (_, ss)) <- runStateT (inferType t []) (0, [])
+runInferType term = do
+  (t, (_, ss)) <- runStateT (inferType term []) (0, [])
   return $ substTree ss t
+
+
+-- -----------------------------------------------------------------------------
+-- Parser
+
+termParser :: Parser Term
+termParser = detParser <|> appParser
+  where
+    detParser = skipSpace >> varParser <|> lamParser <|> brParser
+    varParser = idParser >>= return . V
+    lamParser = char '\\' >> skipSpace >> idParser >>= \ v -> skipSpace >> char '.' >> termParser >>= \ t -> return $ L v t
+    appParser = detParser >>= \ t1 -> skipSpace >> termParser >>= \ t2 -> return $ A t1 t2
+    brParser = char '(' >> termParser >>= \ t -> char ')' >> return t
+    idParser = many1 (satisfy $ inClass ['a' .. 'z'])
+
+--test = parseOnly termParser "\\x. (y) a"
