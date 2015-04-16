@@ -4,9 +4,11 @@
 -- http://okmij.org/ftp/Computation/FLOLAC/
 
 import Control.Applicative ((<|>))
-import Control.Monad.State
+import Control.Monad.Error (ErrorT, runErrorT, throwError)
+import Control.Monad.Identity (Identity, runIdentity)
+import Control.Monad.State (StateT, get, put, runStateT)
 import Data.Attoparsec.ByteString.Char8
---import Data.ByteString (pack)
+import Data.ByteString.Char8 (pack)
 import Data.Char (chr, ord)
 
 type TVarId = Int
@@ -22,14 +24,17 @@ instance Show Type where
 
 type Substitution = (TVarId, Type)
 
+-- | Substitute recursively in a type.
 substTree :: [Substitution] -> Type -> Type
 substTree ss (t1 :> t2) = substTree ss t1 :> substTree ss t2
 substTree ss t = substRoot ss t
 
+-- | Substitute only the root of a type.
 substRoot :: [Substitution] -> Type -> Type
 substRoot ss (TVar v) | Just t <- lookup v ss = substRoot ss t
 substRoot _ t = t
 
+-- | Obtain the type variables of a type modulo substitution.
 vars :: Type -> [Substitution] -> [TVarId]
 vars (s :> t) ss = vars s ss ++ vars t ss
 vars (TVar v) ss
@@ -73,7 +78,15 @@ data Term = V VarId | L VarId Term | A Term Term
 type Typing = (VarId, Type)
 
 type TypeState = (TVarId, [Substitution])
-type TypeM = StateT TypeState (Either String)
+
+type TypeT e m = StateT TypeState (ErrorT e m)
+type TypeM = TypeT String Identity
+
+runTypeT :: TypeT e m a -> TypeState -> m (Either e (a, TypeState))
+runTypeT m = runErrorT . runStateT m
+
+runTypeM :: TypeM a -> TypeState -> Either String (a, TypeState)
+runTypeM m = runIdentity . runTypeT m
 
 -- | Return a fresh type variable.
 freshType :: TypeM Type
@@ -85,13 +98,13 @@ freshType = do
 guardUnify :: Type -> Type -> TypeM ()
 guardUnify s t = do
   (v, ss) <- get
-  either (fail . show) (\ ss' -> put (v, ss')) $ unifySubst s t ss
+  either (throwError . show) (\ ss' -> put (v, ss')) $ unifySubst s t ss
   
 
 inferType :: Term -> [Typing] -> TypeM Type
 inferType (V v) ty
   | Just t <- lookup v ty = return t
-  | otherwise = fail $ "Unbound variable: " ++ v
+  | otherwise = throwError $ "Unbound variable: " ++ v
 inferType (L v t) ty = do
   tv <- freshType
   tt <- inferType t ((v, tv):ty)
@@ -103,9 +116,10 @@ inferType (A s t) ty = do
   guardUnify ts (tt :> tu)
   return tu
 
+
 runInferType :: Term -> Either String Type
 runInferType term = do
-  (t, (_, ss)) <- runStateT (inferType term []) (0, [])
+  (t, (_, ss)) <- runTypeM (inferType term []) (0, [])
   return $ substTree ss t
 
 
@@ -113,13 +127,28 @@ runInferType term = do
 -- Parser
 
 termParser :: Parser Term
-termParser = detParser <|> appParser
-  where
-    detParser = skipSpace >> varParser <|> lamParser <|> brParser
-    varParser = idParser >>= return . V
-    lamParser = char '\\' >> skipSpace >> idParser >>= \ v -> skipSpace >> char '.' >> termParser >>= \ t -> return $ L v t
-    appParser = detParser >>= \ t1 -> skipSpace >> termParser >>= \ t2 -> return $ A t1 t2
-    brParser = char '(' >> termParser >>= \ t -> char ')' >> return t
-    idParser = many1 (satisfy $ inClass ['a' .. 'z'])
+termParser = app <|> det where
+  det = skipSpace >> var <|> lam <|> bra
+  var = vid >>= return . V
+  lam = char '\\' >> skipSpace >> vid >>= \ v -> skipSpace >> char '.' >>
+        termParser >>= \ t -> return $ L v t
+  app = det >>= \ t1 -> skipSpace >> termParser >>= return . A t1
+  bra = char '(' >> termParser >>= \ t -> char ')' >> return t
 
---test = parseOnly termParser "\\x. (y) a"
+  vid = many1 (satisfy $ inClass ['a' .. 'z'])
+
+
+-- -----------------------------------------------------------------------------
+-- Main
+
+intro :: [String]
+intro =
+  [ "Welcome to λ 1.0."
+  , "Type a λ-term. Example: \\x. \\y. x"
+  ]
+
+main :: IO ()
+main = mapM_ putStrLn intro >> interact (unlines . map verify . lines) where
+  verify t = either id result $ parseTerm t >>= runInferType
+  result t = "⊢ " ++ show t
+  parseTerm = parseOnly termParser . pack
