@@ -99,7 +99,9 @@ lemma pmf_sum_one:
 proof -
   have "(\<Sum>m\<in>M. pmf P m) = measure (measure_pmf P) M"
     using assms(1) by (simp add: measure_measure_pmf_finite)
-  show ?thesis sorry
+  also have "... = 1" using assms(2)
+    using AE_measure_pmf_iff prob_space.AE_in_set_eq_1 prob_space_measure_pmf by fastforce
+  finally show ?thesis .
 qed
 
 lemma m_sum_one: "(\<Sum>m\<in>\<M>. \<P>\<^sub>\<M> m) = 1"
