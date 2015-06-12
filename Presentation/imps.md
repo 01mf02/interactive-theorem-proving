@@ -10,8 +10,9 @@ Overview
 --------
 
 * IMPS = Interactive Mathematical Proof System
-* simple type theory with partial functions
+* simple type theory with partial functions and subtypes
 * inference based on *deduction graphs* (similar to derivations in sequent calc.)
+* intuition behind IMPS more closely corresponds to mathematics than, say, CoC
 * macete
 
 
@@ -57,21 +58,55 @@ LUTINS
 * derived from PF, i.e. a version of Church's simple type theory with partiality
 
 
-Types and kinds
----------------
+Types
+-----
 
-### Types
-
-* Prop
-* Ind~1, Ind~2, ..., Ind~n
-
-### Kinds
+### Base types
 
 * Prop
-* Ind (type $\alpha$ is of kind Ind iff $\alpha$ = ...)
+* Ind~1, Ind~2, ..., Ind~m
+
+### Function types
+
+* Given types $\alpha_1, \dots, \alpha_n, \alpha_{n+1}$.
+* Then $\alpha_1, \dots, \alpha_n \rightarrow \alpha_{n+1}$ is a function type.
+
+### Properties
+
+* multi-sorted: $m$ may be >1
+* multi-variate: $n$ may be >1
 
 
+Kinds
+-----
 
+* $\alpha$ is of *kind* Ind if
+
+    - $\alpha$ = Ind~i for some i or
+    - $\alpha = \alpha_1, \dots, \alpha_n \rightarrow \alpha_{n+1}$ and
+  $\alpha_{n+1} is of kind Ind
+
+* Otherwise, $\alpha$ is of kind Prop.
+
+### Definedness
+
+* All values of kind Prop are defined.
+* There exist values of kind Ind that are undefined.
+
+
+Constructors
+------------
+
+* Lambda: $\lambda$
+* Equality: =
+* Function application
+* Iota: I
+
+### Iota
+
+* definite description operator
+* $I x. P x$ denotes unique $x$ satisfying $P$
+* Example: $\lambda x y. I z. x * z = y$.
 
 
 Implementation
