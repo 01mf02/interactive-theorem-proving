@@ -64,7 +64,7 @@ Types
 ### Base types
 
 * Prop
-* Ind~1, Ind~2, ..., Ind~m
+* Ind~1~, Ind~2~, ..., Ind~m~
 
 ### Function types
 
@@ -82,9 +82,9 @@ Kinds
 
 * $\alpha$ is of *kind* Ind if
 
-    - $\alpha$ = Ind~i for some i or
+    - $\alpha$ = Ind~i~ for some i or
     - $\alpha = \alpha_1, \dots, \alpha_n \rightarrow \alpha_{n+1}$ and
-  $\alpha_{n+1} is of kind Ind
+  $\alpha_{n+1}$ is of kind Ind
 
 * Otherwise, $\alpha$ is of kind Prop.
 
@@ -107,6 +107,17 @@ Constructors
 * definite description operator
 * $I x. P x$ denotes unique $x$ satisfying $P$
 * Example: $\lambda x y. I z. x * z = y$.
+
+
+Subtypes
+--------
+
+* Subtypes are subsets of denotations of their types
+* Examples:
+    - $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R} \subset$ Ind~1~
+    - $\mathbb{N} \rightarrow \mathbb{R} \subset$ Ind~1~ $\rightarrow$ Ind~1~
+* $\lambda x : \mathbb{N}. (f : \mathbb{R} \rightarrow \mathbb{R}) x$ well-typed
+
 
 
 Implementation
