@@ -12,8 +12,7 @@ Overview
 * IMPS = Interactive Mathematical Proof System
 * simple type theory with partial functions and subtypes
 * inference based on *deduction graphs* (similar to derivations in sequent calc.)
-* intuition behind IMPS more closely corresponds to mathematics than, say, CoC
-* macete
+* authors claim that intuition behind IMPS more closely corresponds to mathematics than, say, CoC
 
 
 The MITRE Corporation
@@ -35,7 +34,7 @@ McMaster University
 * in Ontaria, Canada
 * 838 km from MIT
 * currently hosts IMPS website
-* employs William M. Farmer, author of IMPS
+* employs William M. Farmer, one of the main IMPS authors
 
 
 Current status
@@ -43,6 +42,14 @@ Current status
 
 * does not seem to be actively developed
 * download link dead
+* author (William M. Farmer) did not respond to e-mail
+
+
+Reference
+---------
+
+Farmer, William M., Joshua D. Guttman, and F. Javier Thayer. "IMPS: An interactive mathematical proof system." Journal of Automated Reasoning 11.2 (1993): 213-248.
+
 
 
 Logic
@@ -119,36 +126,121 @@ Subtypes
 * $\lambda x : \mathbb{N}. (f : \mathbb{R} \rightarrow \mathbb{R}) x$ well-typed
 
 
+Theorem Proving
+===============
+
+
+Deduction graphs
+----------------
+
+### Nodes
+
+* inference node
+* sequent node: $\Gamma \Rightarrow A$ with $\Gamma$ context, $A$ proposition
+
+### Groundedness
+
+* inference: grounded if all child sequents grounded
+* sequent: grounded if some child inference grounded
+
+
+Why deduction graphs?
+---------------------
+
+* sequents can have multiple "realising" inferences
+* loops indicate mutually provable theorems
+* proof analysis
+
+
+Building a graph
+----------------
+
+### Allowed graph operations
+
+* adding sequent nodes
+* primitive inferences:
+    - add new child sequents
+    - connect to parent sequent
+
+### Primitive inferences
+
+* ~ 30 primitive inferences, such as $\beta$-reduction, equality substitution, cut, elimination of Iota-expressions etc.
+* special inferences: macete, simplification
+
+### Strategies
+
+combine primitive inferences, like tactics in HOL
+
+
+Simplification
+--------------
+
+### Problem
+
+* input: context $\Gamma$, expression $e$, theory $\mathcal{T}$
+* output $e'$ s.t. $\Gamma, \mathcal{T} \models e = e'$
+
+### Definedness
+
+* example: $\Gamma \models 1/x - 1/x = 0$ only valid if $\Gamma \models 1/x \downarrow$
+* simplifier creates "convergence requirements"
+
+
+
+Theory-supported reasoning
+==========================
+
+
+Definedness reasoning
+---------------------
+
+Automation relies on following information:
+
+* range: $\forall x : \alpha. \phi(x, f(x))$
+* domain: $\forall x : \alpha. \psi(x) \supset (g(x) \downarrow)$
+* sort-definedness: $\forall x : \alpha. \psi(x) \supset (g(x) \downarrow \beta)$ (definedness of $g(x)$ w.r.t. a sort $\beta$)
+
+
+Macetes
+-------
+
+* Portuguese for "clever trick"
+* apply theorems to sequents in deduction graph
+
+### Macete types
+
+* theorem macete: automatically generated for each theorem
+* compound macete: combine theorey macetes with other macetes such as $\beta$-reduction or simplification
+* transportable macete: apply theorem outside of its theory
+
+
+
+Technical stuff
+===============
+
 
 Implementation
-==============
+--------------
 
-Versions
---------
+### Versions
 
 * Version 1.2: written in the T programming language (Scheme dialect)
 * Version 2.0: adapted to Common Lisp (by emulation of T)
 
+### Interface
 
-Interface (Emacs)
-
+GNU Emacs
 
 
 IMPS Theory Library
-===================
-
-Stuff
------
+-------------------
 
 * 99 theories
 * mathematics: from "Abelian groups" to "vector spaces"
 * networks: e.g. routed-networks, octets, protocol-theory
 * automata: hoare-machines, state-machines
+* software verification: verified Scheme dialect
 
-
-
-Example
-=======
 
 Example
 -------
@@ -170,8 +262,22 @@ Example
 ~~~
 
 
-Partiality
+Conclusion
 ----------
 
-* `#(t)` expresses that a term `t` is defined
-* `?s` expresses that `s` is undefined
+### Specialities
+
+* partiality
+* subtypes
+* deduction graphs
+* LISP-based
+
+### Disadvantages
+
+* dead
+
+
+The end
+-------
+
+Merci beaucoup pour votre attention !
