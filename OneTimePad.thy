@@ -55,11 +55,6 @@ proof -
     by (induct m k c rule: list_induct3, auto)
 qed
 
-lemma uniq_key:
-  assumes "length m = length c"
-    shows "\<exists>!k. length m = length k \<and> encrypt m k = c"
-using reconstruct[OF assms] rec_uniq by (intro ex1I[of _ "reconstruct_key c m"], auto)
-
 axiomatization
       \<K> :: "key set"
   and \<M> :: "message set"
